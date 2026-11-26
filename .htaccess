@@ -1,0 +1,11 @@
+# Si el dominio en Hostinger apunta a la raíz del proyecto en lugar de /public,
+# estas reglas protegen las carpetas internas y envían las peticiones a /public/.
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^(app|config|database|storage|tests|views)/ - [F,L]
+    RewriteRule ^\.env - [F,L]
+    RewriteRule ^$ public/index.php [L]
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>

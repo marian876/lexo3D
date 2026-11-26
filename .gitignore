@@ -1,0 +1,9 @@
+.env
+.DS_Store
+**/.DS_Store
+storage/*.sqlite
+storage/*.sqlite-*
+storage/logs/*
+storage/cache/*
+!storage/logs/.gitkeep
+!storage/cache/.gitkeep
