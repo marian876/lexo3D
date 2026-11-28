@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lexo-shell-v7';
+const CACHE_NAME = 'lexo-shell-v8';
 const PRECACHE_URLS = [
   '/assets/css/lexo.css',
   '/assets/js/lexo.js',

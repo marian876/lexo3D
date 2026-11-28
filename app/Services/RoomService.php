@@ -19,7 +19,7 @@ final class RoomService
         $roomCfg = $config['room'];
         $name = trim(strip_tags((string) ($input['name'] ?? '')));
         if ($name === '') {
-            $name = 'Mesa LEXO';
+            $name = 'Sala LEXO';
         }
         $name = mb_substr($name, 0, 50, 'UTF-8');
 

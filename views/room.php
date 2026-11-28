@@ -26,7 +26,7 @@ $isPractice = (int) $room['max_players'] === 1;
 
 <div id="lexo-room-app">
   <div class="lx-card" style="text-align:center;padding:40px;">
-    Cargando mesa de juego...
+    Cargando sala de juego...
   </div>
 </div>
 

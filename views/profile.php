@@ -99,12 +99,12 @@ $stats = $summary['stats'];
   <section class="lx-card">
     <h2 style="margin:0 0 12px;font-size:1.15rem;font-weight:900;">Historial de partidas</h2>
     <?php if (empty($history)): ?>
-      <p class="lx-hint" style="margin:0;">Todavía no completaste ninguna partida. ¡Creá o unite a una mesa para estrenar tu historial!</p>
+      <p class="lx-hint" style="margin:0;">Todavía no completaste ninguna partida. ¡Creá o unite a una sala para estrenar tu historial!</p>
     <?php else: ?>
       <div class="lx-table-wrap">
         <table class="lx-table">
           <thead>
-            <tr><th>Fecha</th><th>Mesa</th><th>Puesto</th><th>Rondas</th><th>Palabras</th><th>Puntos</th><th>Recompensa</th></tr>
+            <tr><th>Fecha</th><th>Sala</th><th>Puesto</th><th>Rondas</th><th>Palabras</th><th>Puntos</th><th>Recompensa</th></tr>
           </thead>
           <tbody>
             <?php foreach ($history as $h): ?>

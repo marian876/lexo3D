@@ -38,7 +38,7 @@ final class MatchService
         $isPractice = (int) $room['max_players'] === 1;
         $minPlayers = $isPractice ? 1 : (int) $config['room']['min_players'];
         if (count($players) < $minPlayers) {
-            throw new RuntimeException("Se necesitan al menos {$minPlayers} jugadores en la mesa para comenzar.");
+            throw new RuntimeException("Se necesitan al menos {$minPlayers} jugadores en la sala para comenzar.");
         }
 
         $now = Database::nowUtc();
@@ -392,7 +392,7 @@ final class MatchService
         $info = $stmt->fetch();
 
         if (!$info || (int) $info['host_user_id'] !== $hostUserId) {
-            throw new RuntimeException('Solo el anfitrión puede revisar palabras en la mesa.');
+            throw new RuntimeException('Solo el anfitrión puede revisar palabras en la sala.');
         }
         if ($info['status'] !== 'finished') {
             throw new RuntimeException('Las palabras solo se revisan al terminar la ronda.');

@@ -271,7 +271,7 @@ $roomCfg = $config['room'];
     <?php else: ?>
       <div style="display:flex;flex-direction:column;gap:6px;">
         <span class="lx-arcade-badge">⚡ Sala en vivo</span>
-        <h1 class="lx-panel-title">Unirse a una mesa</h1>
+        <h1 class="lx-panel-title">Unirse a una sala</h1>
         <p class="lx-panel-sub">Ingresá el código que te compartió el anfitrión o creá tu propia sala.</p>
       </div>
 
@@ -293,7 +293,7 @@ $roomCfg = $config['room'];
           >
           <div id="join-code-err" class="lx-error-msg">⚠️ Ingresá un código válido.</div>
         </div>
-        <button type="submit" class="lx-btn lx-btn-indigo lx-btn-lg lx-btn-block">Entrar a la mesa</button>
+        <button type="submit" class="lx-btn lx-btn-indigo lx-btn-lg lx-btn-block">Entrar a la sala</button>
       </form>
 
       <div class="lx-panel-footer" style="display:flex;flex-direction:column;gap:10px;">
@@ -317,7 +317,7 @@ $roomCfg = $config['room'];
   <!-- Diálogo Crear Sala (disponible tanto para invitados nuevos como usuarios con sesión) -->
   <dialog id="create-room-dialog" closedby="any" aria-labelledby="create-room-title">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-      <h1 id="create-room-title" style="margin:0;font-size:1.3rem;font-weight:900;">Configurar nueva mesa</h1>
+      <h1 id="create-room-title" style="margin:0;font-size:1.3rem;font-weight:900;">Configurar nueva sala</h1>
       <button type="button" class="lx-btn-icon" command="close" commandfor="create-room-dialog" data-close-dialog aria-label="Cerrar">✕</button>
     </div>
 
@@ -345,7 +345,7 @@ $roomCfg = $config['room'];
 
       <div class="lx-field">
         <label for="room-name" class="lx-label">Nombre de la sala</label>
-        <input id="room-name" name="name" type="text" maxlength="50" value="<?= !empty($user) ? 'Mesa de ' . Response::e($user['display_name']) : 'Mesa LEXO' ?>" class="lx-input" <?= !empty($user) ? 'autofocus' : '' ?>>
+        <input id="room-name" name="name" type="text" maxlength="50" value="<?= !empty($user) ? 'Sala de ' . Response::e($user['display_name']) : 'Sala LEXO' ?>" class="lx-input" <?= !empty($user) ? 'autofocus' : '' ?>>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">

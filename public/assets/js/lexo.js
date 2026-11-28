@@ -146,8 +146,8 @@
         if (modalNick && guestNick && !modalNick.value.trim()) {
           modalNick.value = guestNick;
         }
-        if (roomName && guestNick && (roomName.value === 'Mesa LEXO' || roomName.value === '')) {
-          roomName.value = `Mesa de ${guestNick}`;
+        if (roomName && guestNick && (roomName.value === 'Sala LEXO' || roomName.value === '')) {
+          roomName.value = `Sala de ${guestNick}`;
         }
       }
       if (target && typeof target.showModal === 'function' && !target.open) {
@@ -539,7 +539,7 @@
 
           <div class="lx-card-soft" style="display:flex;align-items:center;justify-content:space-between;gap:14px;">
             <div>
-              <div class="lx-hint" style="text-transform:uppercase;font-weight:800;">Código de mesa</div>
+              <div class="lx-hint" style="text-transform:uppercase;font-weight:800;">Código de sala</div>
               <div style="font-size:1.9rem;font-weight:900;letter-spacing:0.12em;color:var(--lx-amber);" class="tabular-nums">${esc(r.code)}</div>
               <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;">
                 <button type="button" id="btn-copy-code" class="lx-btn lx-btn-cream lx-btn-sm">📋 Copiar</button>
@@ -559,7 +559,7 @@
 
         <div class="lx-card" style="display:flex;flex-direction:column;justify-content:space-between;gap:16px;">
           <div>
-            <h2 style="margin:0 0 12px;font-size:1.1rem;font-weight:900;">Jugadores en la mesa</h2>
+            <h2 style="margin:0 0 12px;font-size:1.1rem;font-weight:900;">Jugadores en la sala</h2>
             <div id="lobby-players-list" style="display:flex;flex-direction:column;gap:10px;"></div>
           </div>
 
@@ -632,10 +632,10 @@
     if (startBtn && msg) {
       if (s.players.length < 2) {
         startBtn.disabled = true;
-        msg.textContent = 'Esperando al menos 2 jugadores en la mesa para comenzar.';
+        msg.textContent = 'Esperando al menos 2 jugadores en la sala para comenzar.';
       } else {
         startBtn.disabled = false;
-        msg.textContent = '¡Mesa lista! Ya pueden comenzar la partida con Lexo 3D.';
+        msg.textContent = '¡Sala lista! Ya pueden comenzar la partida con Lexo3D.';
       }
     }
   };
@@ -970,7 +970,7 @@
       <div style="max-width:740px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
         <div class="lx-card" style="text-align:center;">
           <span class="lx-chip lx-chip-gold">¡PARTIDA FINALIZADA!</span>
-          <h1 style="margin:8px 0 4px;font-size:1.75rem;font-weight:900;">Podio de la Mesa</h1>
+          <h1 style="margin:8px 0 4px;font-size:1.75rem;font-weight:900;">Podio de la Sala</h1>
           <div class="lx-hint">${esc(s.room.name)} · ${m.round_count_snapshot} rondas</div>
 
           <div class="lx-podium">
@@ -1091,7 +1091,7 @@
 
     ctx.fillStyle = '#FFB800';
     ctx.font = '900 32px system-ui, sans-serif';
-    ctx.fillText('PODIO DE LA MESA', 42, 195);
+    ctx.fillText('PODIO DE LA SALA', 42, 195);
 
     const standings = (s.match_standings || []).slice(0, 5);
     standings.forEach((st, i) => {
