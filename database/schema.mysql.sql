@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   scoring_mode ENUM('count', 'length') NOT NULL DEFAULT 'length',
   validation_mode ENUM('table', 'dictionary') NOT NULL DEFAULT 'table',
   min_word_length TINYINT UNSIGNED NOT NULL DEFAULT 3,
+  sound_enabled TINYINT(1) NOT NULL DEFAULT 1,
   language VARCHAR(10) NOT NULL DEFAULT 'es',
   created_at DATETIME NOT NULL,
   started_at DATETIME NULL,

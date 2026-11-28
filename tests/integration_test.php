@@ -176,4 +176,12 @@ $leaderboardWithReg = StatsService::getLeaderboard('points');
 $namesInBoard = array_column($leaderboardWithReg, 'display_name');
 assertTrue(in_array('RegistradoNuevo', $namesInBoard, true), 'Usuario registrado debe aparecer en el ranking aunque tenga 0 partidas');
 
+// 8. Configuración de sonido por sala (con sonido / sin sonido)
+$silentRoom = RoomService::createRoom((int) $host['id'], [
+    'name' => 'Sala Silenciosa',
+    'sound_enabled' => '0',
+], $config);
+assertTrue((int) $silentRoom['sound_enabled'] === 0, 'Debe respetar sound_enabled = 0 al crear sala sin sonido');
+assertTrue((int) $room['sound_enabled'] === 1, 'Por defecto sound_enabled debe ser 1');
+
 echo "ALL TESTS PASSED ({$passed} assertions)\n";

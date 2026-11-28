@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   scoring_mode TEXT NOT NULL DEFAULT 'length',
   validation_mode TEXT NOT NULL DEFAULT 'table',
   min_word_length INTEGER NOT NULL DEFAULT 3,
+  sound_enabled INTEGER NOT NULL DEFAULT 1,
   language TEXT NOT NULL DEFAULT 'es',
   created_at TEXT NOT NULL,
   started_at TEXT NULL,

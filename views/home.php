@@ -409,6 +409,14 @@ $roomCfg = $config['room'];
         </select>
       </div>
 
+      <div class="lx-field">
+        <label for="room-sound" class="lx-label">Sonido de cuenta regresiva</label>
+        <select id="room-sound" name="sound_enabled" class="lx-select">
+          <option value="1" selected>🔊 Con sonido (últimos 10 seg)</option>
+          <option value="0">🔇 Sin sonido</option>
+        </select>
+      </div>
+
       <button type="submit" class="lx-btn lx-btn-coral lx-btn-lg lx-btn-block">🚀 Abrir sala y obtener código QR</button>
     </form>
   </dialog>
@@ -463,6 +471,14 @@ $roomCfg = $config['room'];
               ?>
               <option value="<?= Response::e($key) ?>" <?= $key === $roomCfg['default_validation_mode'] ? 'selected' : '' ?>><?= Response::e($label . $suffix) ?></option>
             <?php endforeach; ?>
+          </select>
+        </div>
+
+        <div class="lx-field">
+          <label for="practice-sound" class="lx-label">Sonido de cuenta regresiva</label>
+          <select id="practice-sound" name="sound_enabled" class="lx-select">
+            <option value="1" selected>🔊 Con sonido (últimos 10 seg)</option>
+            <option value="0">🔇 Sin sonido</option>
           </select>
         </div>
 

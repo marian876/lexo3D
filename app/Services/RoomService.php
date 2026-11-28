@@ -54,15 +54,18 @@ final class RoomService
             $minLength = (int) $roomCfg['default_min_word_length'];
         }
 
+        $soundEnabled = ((string) ($input['sound_enabled'] ?? '1')) === '0' ? 0 : 1;
+
         $pdo = Database::connection();
+        self::ensureSoundColumn($pdo);
         $code = self::generateUniqueCode($roomCfg['code_prefix']);
         $now = Database::nowUtc();
 
         $pdo->beginTransaction();
         try {
             $stmt = $pdo->prepare(
-                'INSERT INTO rooms (code, name, host_user_id, status, max_players, round_count, round_duration_seconds, scoring_mode, validation_mode, min_word_length, language, created_at)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                'INSERT INTO rooms (code, name, host_user_id, status, max_players, round_count, round_duration_seconds, scoring_mode, validation_mode, min_word_length, sound_enabled, language, created_at)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
             );
             $stmt->execute([
                 $code,
@@ -75,6 +78,7 @@ final class RoomService
                 $scoringMode,
                 $validationMode,
                 $minLength,
+                $soundEnabled,
                 'es',
                 $now,
             ]);
@@ -355,5 +359,17 @@ final class RoomService
         }
 
         throw new RuntimeException('No se pudo generar un código de sala único.');
+    }
+
+    private static function ensureSoundColumn(\PDO $pdo): void
+    {
+        try {
+            $pdo->query('SELECT sound_enabled FROM rooms LIMIT 1');
+        } catch (\Throwable $e) {
+            $colSql = Database::driver() === 'mysql'
+                ? 'ALTER TABLE rooms ADD COLUMN sound_enabled TINYINT(1) NOT NULL DEFAULT 1 AFTER min_word_length'
+                : 'ALTER TABLE rooms ADD COLUMN sound_enabled INTEGER NOT NULL DEFAULT 1';
+            $pdo->exec($colSql);
+        }
     }
 }

@@ -1199,6 +1199,12 @@ a {
 .lx-timer-box {
   text-align: center;
   padding: 16px;
+  transition: border-color 180ms ease, background-color 180ms ease;
+}
+
+.lx-timer-box.is-urgent {
+  border-color: #EF4444;
+  background: rgba(239, 68, 68, 0.16);
 }
 
 .lx-timer-value {
@@ -1218,7 +1224,11 @@ a {
 }
 
 .lx-timer-value.is-urgent {
-  color: #FB7185;
+  color: #EF4444;
+}
+
+:root:has(> head > meta[name="color-scheme"][content="light"]) .lx-timer-value.is-urgent {
+  color: #DC2626;
 }
 
 .lx-progress-track {

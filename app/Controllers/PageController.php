@@ -85,6 +85,7 @@ final class PageController
                 'scoring_mode' => $_POST['scoring_mode'] ?? $config['room']['default_scoring_mode'],
                 'validation_mode' => $_POST['validation_mode'] ?? $config['room']['default_validation_mode'],
                 'min_word_length' => $_POST['min_word_length'] ?? $config['room']['default_min_word_length'],
+                'sound_enabled' => $_POST['sound_enabled'] ?? '1',
             ];
             $room = RoomService::createRoom((int) $user['id'], $input, $config);
             MatchService::startMatch((int) $room['id'], (int) $user['id'], $config);

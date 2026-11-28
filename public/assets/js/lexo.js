@@ -213,7 +213,7 @@
   }
 
   let audioCtx = null;
-  const playTone = (type) => {
+  const playTone = (type, secLeft = 10) => {
     if (!soundEnabled) return;
     try {
       const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -227,7 +227,15 @@
       osc.connect(gain);
       gain.connect(audioCtx.destination);
 
-      if (type === 'pop') {
+      if (type === 'tick') {
+        osc.type = 'sine';
+        const freq = secLeft <= 3 ? 1046.5 : 880;
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.09);
+      } else if (type === 'pop') {
         osc.type = 'triangle';
         osc.frequency.setValueAtTime(520, now);
         osc.frequency.exponentialRampToValueAtTime(780, now + 0.08);
@@ -554,6 +562,7 @@
             <span class="lx-chip">${scoringLabel}</span>
             <span class="lx-chip">${validLabel}</span>
             <span class="lx-chip">🔡 Mín. ${r.min_word_length} letras</span>
+            <span class="lx-chip">${Number(r.sound_enabled ?? 1) === 1 ? '🔊 Con sonido (10s)' : '🔇 Sin sonido'}</span>
           </div>
         </div>
 
@@ -740,6 +749,8 @@
 
     const totalDurationMs = Number(m.round_duration_snapshot) * 1000;
     const endsAtMs = Number(round.ends_at_ms);
+    const roomSoundEnabled = Number(r.sound_enabled ?? 1) === 1;
+    let lastTickSec = null;
 
     const tick = () => {
       const nowServer = Date.now() + serverOffsetMs;
@@ -749,6 +760,7 @@
       const ss = String(sec % 60).padStart(2, '0');
 
       const timerEl = document.getElementById('live-timer');
+      const timerBox = timerEl?.closest('.lx-timer-box');
       const barEl = document.getElementById('live-timer-bar');
       if (timerEl && barEl) {
         timerEl.textContent = `${mm}:${ss}`;
@@ -756,9 +768,15 @@
         barEl.style.width = `${pct}%`;
 
         timerEl.classList.remove('is-warning', 'is-urgent');
+        timerBox?.classList.remove('is-urgent');
         if (sec <= 10) {
           timerEl.classList.add('is-urgent');
-          barEl.style.background = 'var(--lx-crimson)';
+          timerBox?.classList.add('is-urgent');
+          barEl.style.background = '#EF4444';
+          if (roomSoundEnabled && sec >= 1 && sec !== lastTickSec) {
+            lastTickSec = sec;
+            playTone('tick', sec);
+          }
         } else if (sec <= 20) {
           timerEl.classList.add('is-warning');
           barEl.style.background = '#F59E0B';
@@ -951,6 +969,7 @@
             <input type="hidden" name="scoring_mode" value="${esc(m.scoring_mode_snapshot)}">
             <input type="hidden" name="validation_mode" value="${esc(m.validation_mode_snapshot)}">
             <input type="hidden" name="min_word_length" value="${Number(m.min_word_length_snapshot)}">
+            <input type="hidden" name="sound_enabled" value="${Number(s.room.sound_enabled ?? 1)}">
             <button type="submit" class="lx-btn lx-btn-coral lx-btn-lg lx-btn-block">🔄 Practicar otra vez</button>
             <a href="/" class="lx-btn lx-btn-cream lx-btn-block">🏠 Volver al inicio</a>
           </form>
