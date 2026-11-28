@@ -374,28 +374,34 @@ final class MatchService
     }
 
     /**
-     * Permite al anfitrión marcar o desmarcar una palabra dudosa durante la revisión de resultados en Mesa Libre.
+     * Permite a los contrarios marcar o desmarcar una palabra (por ejemplo si usa letras que no estaban en los dados).
      *
      * @param array<string, mixed> $config
      */
-    public static function toggleWordRejection(int $roundId, int $wordId, int $hostUserId, array $config): void
+    public static function toggleWordRejection(int $roundId, int $wordId, int $actorUserId, array $config): void
     {
         $pdo = Database::connection();
         $stmt = $pdo->prepare(
-            'SELECT r.id, r.match_id, r.status, m.room_id, m.scoring_mode_snapshot, rm.host_user_id
+            'SELECT r.id, r.match_id, r.status, m.status AS match_status, m.room_id, m.scoring_mode_snapshot
              FROM rounds r
              JOIN matches m ON m.id = r.match_id
-             JOIN rooms rm ON rm.id = m.room_id
              WHERE r.id = ? LIMIT 1'
         );
         $stmt->execute([$roundId]);
         $info = $stmt->fetch();
 
-        if (!$info || (int) $info['host_user_id'] !== $hostUserId) {
-            throw new RuntimeException('Solo el anfitrión puede revisar palabras en la sala.');
+        if (!$info) {
+            throw new RuntimeException('Ronda no encontrada.');
         }
         if ($info['status'] !== 'finished') {
-            throw new RuntimeException('Las palabras solo se revisan al terminar la ronda.');
+            throw new RuntimeException('Las palabras solo se pueden rechazar al terminar la ronda.');
+        }
+
+        // Verificar que quien rechaza pertenezca a la partida
+        $mpCheck = $pdo->prepare('SELECT 1 FROM match_players WHERE match_id = ? AND user_id = ? LIMIT 1');
+        $mpCheck->execute([(int) $info['match_id'], $actorUserId]);
+        if (!$mpCheck->fetchColumn()) {
+            throw new RuntimeException('No pertenecés a esta sala.');
         }
 
         $wStmt = $pdo->prepare('SELECT * FROM words WHERE id = ? AND round_id = ? LIMIT 1');
@@ -405,8 +411,12 @@ final class MatchService
             throw new RuntimeException('Palabra no encontrada.');
         }
 
+        if ((int) $word['user_id'] === $actorUserId) {
+            throw new RuntimeException('Solo los contrarios pueden rechazar o restaurar tus palabras.');
+        }
+
         $newStatus = $word['validation_status'] === 'valid' ? 'rejected' : 'valid';
-        $reason = $newStatus === 'rejected' ? 'Descartada en consenso de mesa' : null;
+        $reason = $newStatus === 'rejected' ? 'Rechazada por los contrarios' : null;
         $newPoints = $newStatus === 'valid'
             ? self::calculateWordPoints((int) $word['letter_count'], (string) $info['scoring_mode_snapshot'], $config)
             : 0;
@@ -417,6 +427,9 @@ final class MatchService
                 ->execute([$newStatus, $reason, $newPoints, $wordId]);
 
             self::recalculateRoundAndMatchTotals($pdo, (int) $info['match_id'], $roundId);
+            if ($info['match_status'] === 'finished') {
+                self::recalculateFinishedMatchPositions($pdo, (int) $info['match_id']);
+            }
             $pdo->commit();
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
@@ -693,6 +706,108 @@ final class MatchService
         );
         $stmt->execute([$matchId]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Devuelve todas las rondas de una partida con el listado completo de palabras por participante.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function getMatchAllRoundWords(int $matchId): array
+    {
+        $pdo = Database::connection();
+        $rStmt = $pdo->prepare('SELECT id, round_number FROM rounds WHERE match_id = ? ORDER BY round_number ASC');
+        $rStmt->execute([$matchId]);
+        $rounds = $rStmt->fetchAll();
+
+        $pStmt = $pdo->prepare(
+            'SELECT mp.user_id, u.display_name, u.avatar_url, u.avatar_color
+             FROM match_players mp
+             JOIN users u ON u.id = mp.user_id
+             WHERE mp.match_id = ?
+             ORDER BY COALESCE(mp.final_position, 99) ASC, mp.competitive_points DESC'
+        );
+        $pStmt->execute([$matchId]);
+        $players = $pStmt->fetchAll();
+
+        $wStmt = $pdo->prepare(
+            'SELECT w.id, w.round_id, w.user_id, w.original_text, w.letter_count, w.points_awarded, w.validation_status, w.rejection_reason
+             FROM words w
+             JOIN rounds r ON r.id = w.round_id
+             WHERE r.match_id = ?
+             ORDER BY w.points_awarded DESC, w.id ASC'
+        );
+        $wStmt->execute([$matchId]);
+        $allWords = $wStmt->fetchAll();
+
+        $byRoundUser = [];
+        foreach ($allWords as $w) {
+            $byRoundUser[(int) $w['round_id']][(int) $w['user_id']][] = $w;
+        }
+
+        $out = [];
+        foreach ($rounds as $rd) {
+            $rid = (int) $rd['id'];
+            $pList = [];
+            foreach ($players as $p) {
+                $uid = (int) $p['user_id'];
+                $pList[] = [
+                    'user_id' => $uid,
+                    'display_name' => $p['display_name'],
+                    'avatar_url' => $p['avatar_url'],
+                    'avatar_color' => $p['avatar_color'],
+                    'words' => $byRoundUser[$rid][$uid] ?? [],
+                ];
+            }
+            $out[] = [
+                'round_id' => $rid,
+                'round_number' => (int) $rd['round_number'],
+                'players' => $pList,
+            ];
+        }
+
+        return $out;
+    }
+
+    private static function recalculateFinishedMatchPositions(\PDO $pdo, int $matchId): void
+    {
+        $mpStmt = $pdo->prepare('SELECT * FROM match_players WHERE match_id = ?');
+        $mpStmt->execute([$matchId]);
+        $standings = $mpStmt->fetchAll();
+
+        usort($standings, static function (array $a, array $b): int {
+            if ((int) $a['rounds_won'] !== (int) $b['rounds_won']) {
+                return (int) $b['rounds_won'] <=> (int) $a['rounds_won'];
+            }
+            if ((int) $a['competitive_points'] !== (int) $b['competitive_points']) {
+                return (int) $b['competitive_points'] <=> (int) $a['competitive_points'];
+            }
+            return (int) $b['valid_word_count'] <=> (int) $a['valid_word_count'];
+        });
+
+        $topRounds = (int) ($standings[0]['rounds_won'] ?? 0);
+        $topPoints = (int) ($standings[0]['competitive_points'] ?? 0);
+        $topWinners = 0;
+        foreach ($standings as $s) {
+            if ($topPoints > 0 && (int) $s['rounds_won'] === $topRounds && (int) $s['competitive_points'] === $topPoints) {
+                $topWinners++;
+            }
+        }
+        $winnerUserId = ($topWinners === 1) ? (int) $standings[0]['user_id'] : null;
+
+        $pos = 1;
+        $upd = $pdo->prepare('UPDATE match_players SET final_position = ? WHERE id = ?');
+        foreach ($standings as $idx => $s) {
+            if ($idx > 0) {
+                $prev = $standings[$idx - 1];
+                if ((int) $s['rounds_won'] !== (int) $prev['rounds_won'] || (int) $s['competitive_points'] !== (int) $prev['competitive_points']) {
+                    $pos = $idx + 1;
+                }
+            }
+            $upd->execute([$pos, (int) $s['id']]);
+        }
+
+        $pdo->prepare('UPDATE matches SET winner_user_id = ? WHERE id = ?')->execute([$winnerUserId, $matchId]);
     }
 
     /**

@@ -460,6 +460,7 @@
   let timerFrame = null;
   let pollTimeout = null;
   let lastViewKey = '';
+  let lastResultDigest = '';
   let celebratingRoundId = null;
 
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
@@ -503,12 +504,27 @@
       } else if (viewKey.startsWith('round-active-')) {
         updateLiveCounters(s);
       } else if (viewKey.startsWith('round-done-')) {
-        updateRoundResultsHostControls(s);
+        const digest = JSON.stringify(s.round_results || []);
+        if (digest !== lastResultDigest) {
+          lastResultDigest = digest;
+          renderRoundResultsView(s);
+        }
+      } else if (viewKey.startsWith('match-done-')) {
+        const digest = JSON.stringify([s.match_standings || [], s.match_rounds_words || []]);
+        if (digest !== lastResultDigest) {
+          lastResultDigest = digest;
+          renderMatchFinalView(s);
+        }
       }
       return;
     }
 
     lastViewKey = viewKey;
+    lastResultDigest = viewKey.startsWith('round-done-')
+      ? JSON.stringify(s.round_results || [])
+      : viewKey.startsWith('match-done-')
+        ? JSON.stringify([s.match_standings || [], s.match_rounds_words || []])
+        : '';
     clearInterval(timerFrame);
 
     if (viewKey === 'lobby') {
@@ -833,7 +849,7 @@
     const round = s.round;
     const m = s.match;
     const results = s.round_results || [];
-    const canToggleWords = s.is_host && m.validation_mode_snapshot === 'table';
+    const myId = Number(window.__LEXO_USER_ID__);
 
     // Encontrar la palabra más larga de la ronda
     let gem = null;
@@ -856,10 +872,11 @@
         <div id="round-results-cards" style="display:flex;flex-direction:column;gap:12px;">
           ${results.map((r) => {
             const winTag = Number(r.is_winner) === 1 ? `<span class="lx-chip lx-chip-gold">👑 Ganador de ronda</span>` : '';
+            const isOpponent = Number(r.user_id) !== myId;
             const wordsHtml = (r.words || []).map((w) => {
               const rej = w.validation_status === 'rejected';
-              if (canToggleWords) {
-                return `<button type="button" data-toggle-word="${w.id}" title="Tocá para invalidar o restaurar en consenso de mesa" class="lx-word-chip ${rej ? 'is-rejected' : ''}" style="cursor:pointer;">
+              if (isOpponent) {
+                return `<button type="button" data-toggle-word="${w.id}" data-round-id="${round.id}" title="${rej ? 'Tocá para restaurar palabra' : 'Tocá para rechazar si usó letras que no estaban en los dados'}" class="lx-word-chip ${rej ? 'is-rejected' : ''}" style="cursor:pointer;">
                   ${esc(w.original_text)} <span class="lx-word-pts">${rej ? '✕' : `+${w.points_awarded}`}</span>
                 </button>`;
               }
@@ -885,7 +902,7 @@
           }).join('')}
         </div>
 
-        ${canToggleWords ? `<div class="lx-hint" style="text-align:center;">💡 Modo Mesa Libre: como anfitrión podés tocar cualquier palabra para anularla o restaurarla por consenso.</div>` : ''}
+        <div class="lx-hint" style="text-align:center;">💡 Si un contrario usó letras que no estaban en los dados, tocá su palabra para rechazarla.</div>
 
         <div>
           ${s.is_host
@@ -899,16 +916,24 @@
     attachRoundResultListeners(round.id);
   };
 
-  const attachRoundResultListeners = (roundId) => {
+  const attachToggleWordListeners = () => {
     document.querySelectorAll('[data-toggle-word]').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const wordId = Number(btn.getAttribute('data-toggle-word'));
+        const roundId = Number(btn.getAttribute('data-round-id'));
+        btn.disabled = true;
         const res = await apiPost('/api/round/toggle-word', { round_id: roundId, word_id: wordId });
         if (res.ok) {
           await pollState(true, true);
+        } else {
+          btn.disabled = false;
         }
       });
     });
+  };
+
+  const attachRoundResultListeners = (roundId) => {
+    attachToggleWordListeners();
 
     document.getElementById('btn-next-round')?.addEventListener('click', async (e) => {
       e.currentTarget.disabled = true;
@@ -916,11 +941,6 @@
       if (res.ok) await pollState(true);
       else e.currentTarget.disabled = false;
     });
-  };
-
-  const updateRoundResultsHostControls = (s) => {
-    // Si el anfitrión anuló palabras, refrescamos la vista
-    renderRoundResultsView(s);
   };
 
   const renderMatchFinalView = (s) => {
@@ -1054,6 +1074,42 @@
           </div>
         </div>
 
+        ${(s.match_rounds_words || []).length ? `
+          <div class="lx-card" style="display:flex;flex-direction:column;gap:14px;">
+            <div>
+              <h2 style="margin:0 0 4px;font-size:1rem;font-weight:900;">📝 Palabras por participante</h2>
+              <p class="lx-hint" style="margin:0;">Si un contrario usó letras que no estaban en los dados, tocá su palabra para rechazarla.</p>
+            </div>
+            ${(s.match_rounds_words || []).map((rd) => `
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                ${(s.match_rounds_words.length > 1) ? `<div class="lx-chip" style="align-self:flex-start;">Ronda ${rd.round_number}</div>` : ''}
+                ${rd.players.map((p) => {
+                  const isOpponent = Number(p.user_id) !== Number(window.__LEXO_USER_ID__);
+                  const chips = (p.words || []).map((w) => {
+                    const rej = w.validation_status === 'rejected';
+                    if (isOpponent) {
+                      return `<button type="button" data-toggle-word="${w.id}" data-round-id="${rd.round_id}" title="${rej ? 'Tocá para restaurar palabra' : 'Tocá para rechazar si usó letras que no estaban en los dados'}" class="lx-word-chip ${rej ? 'is-rejected' : ''}" style="cursor:pointer;">
+                        ${esc(w.original_text)} <span class="lx-word-pts">${rej ? '✕' : `+${w.points_awarded}`}</span>
+                      </button>`;
+                    }
+                    return `<span class="lx-word-chip ${rej ? 'is-rejected' : ''}">${esc(w.original_text)} <span class="lx-word-pts">${rej ? '✕' : `+${w.points_awarded}`}</span></span>`;
+                  }).join('');
+                  return `
+                    <div class="lx-card-soft" style="display:flex;flex-direction:column;gap:8px;">
+                      <div style="display:flex;align-items:center;gap:8px;font-weight:900;font-size:0.92rem;">
+                        ${renderAvatar(p, 'lx-avatar-sm')}
+                        <span>${esc(p.display_name)}</span>
+                        <span class="lx-hint">(${p.words.filter((w) => w.validation_status === 'valid').length} válidas)</span>
+                      </div>
+                      <div class="lx-word-chips">${chips || '<span class="lx-hint">Sin palabras registradas.</span>'}</div>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `).join('')}
+          </div>
+        ` : ''}
+
         <div style="display:flex;flex-direction:column;gap:10px;">
           ${s.is_host
             ? `<button type="button" id="btn-rematch" class="lx-btn lx-btn-coral lx-btn-lg lx-btn-block">🔥 Revancha en esta sala</button>`
@@ -1066,6 +1122,8 @@
         </div>
       </div>
     `;
+
+    attachToggleWordListeners();
 
     document.getElementById('btn-rematch')?.addEventListener('click', async (e) => {
       e.currentTarget.disabled = true;

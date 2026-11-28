@@ -296,6 +296,7 @@ final class RoomService
         $myWords = [];
         $roundResults = [];
         $matchStandings = [];
+        $matchRoundsWords = [];
         $newAchievements = [];
 
         if ($match) {
@@ -318,6 +319,7 @@ final class RoomService
 
             $matchStandings = MatchService::getMatchStandings((int) $match['id']);
             if ($match['status'] === 'finished') {
+                $matchRoundsWords = MatchService::getMatchAllRoundWords((int) $match['id']);
                 $newAchievements = StatsService::getMatchUnlockedAchievements((int) $match['id'], $viewerUserId);
             }
         }
@@ -335,6 +337,7 @@ final class RoomService
             'my_words' => $myWords,
             'round_results' => $roundResults,
             'match_standings' => $matchStandings,
+            'match_rounds_words' => $matchRoundsWords,
             'unlocked_achievements' => $newAchievements,
         ];
     }

@@ -184,4 +184,18 @@ $silentRoom = RoomService::createRoom((int) $host['id'], [
 assertTrue((int) $silentRoom['sound_enabled'] === 0, 'Debe respetar sound_enabled = 0 al crear sala sin sonido');
 assertTrue((int) $room['sound_enabled'] === 1, 'Por defecto sound_enabled debe ser 1');
 
+// 9. Revisión al final de la partida: listado completo y rechazo por parte de los contrarios
+$allWords = MatchService::getMatchAllRoundWords((int) $match['id']);
+assertTrue(count($allWords) === 1 && count($allWords[0]['players']) === 2, 'Debe devolver las palabras de todos los participantes al finalizar');
+
+// El propio jugador no puede rechazar su propia palabra
+$hostWordId = (int) $w1['id'];
+assertThrows(fn () => MatchService::toggleWordRejection((int) $round['id'], $hostWordId, (int) $host['id'], $config), 'Un jugador no puede rechazar su propia palabra');
+
+// Un contrario (guest2) sí puede rechazar la palabra del host al final de la partida
+MatchService::toggleWordRejection((int) $round['id'], $hostWordId, (int) $guest2['id'], $config);
+$updatedStandings = MatchService::getMatchStandings((int) $match['id']);
+$hostAfterReject = array_values(array_filter($updatedStandings, fn ($s) => (int) $s['user_id'] === (int) $host['id']))[0];
+assertTrue((int) $hostAfterReject['valid_word_count'] === 1, 'Al rechazar un contrario la palabra, el conteo válido del host debe bajar a 1');
+
 echo "ALL TESTS PASSED ({$passed} assertions)\n";
