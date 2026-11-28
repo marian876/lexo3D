@@ -80,21 +80,26 @@ final class StatsService
     public static function getLeaderboard(string $orderBy = 'points', int $limit = 30): array
     {
         $column = match ($orderBy) {
-            'wins' => 'ps.matches_won',
-            'xp' => 'ps.experience_total',
-            default => 'ps.competitive_points_total',
+            'wins' => 'COALESCE(ps.matches_won, 0)',
+            'xp' => 'COALESCE(ps.experience_total, 0)',
+            default => 'COALESCE(ps.competitive_points_total, 0)',
         };
 
         $pdo = Database::connection();
         // Privacidad (lexo.md §8.14): nunca exponer email ni google_sub en rankings públicos
         $stmt = $pdo->prepare(
             "SELECT u.id, u.display_name, u.avatar_url, u.avatar_color, u.is_guest,
-                    ps.matches_played, ps.matches_won, ps.valid_words_total,
-                    ps.competitive_points_total, ps.experience_total, ps.stars_total, ps.best_win_streak
-             FROM player_stats ps
-             JOIN users u ON u.id = ps.user_id
-             WHERE u.status = 'active' AND ps.matches_played > 0
-             ORDER BY {$column} DESC, ps.matches_won DESC, ps.stars_total DESC
+                    COALESCE(ps.matches_played, 0) AS matches_played,
+                    COALESCE(ps.matches_won, 0) AS matches_won,
+                    COALESCE(ps.valid_words_total, 0) AS valid_words_total,
+                    COALESCE(ps.competitive_points_total, 0) AS competitive_points_total,
+                    COALESCE(ps.experience_total, 0) AS experience_total,
+                    COALESCE(ps.stars_total, 0) AS stars_total,
+                    COALESCE(ps.best_win_streak, 0) AS best_win_streak
+             FROM users u
+             LEFT JOIN player_stats ps ON ps.user_id = u.id
+             WHERE u.status = 'active' AND (u.is_guest = 0 OR COALESCE(ps.matches_played, 0) > 0)
+             ORDER BY {$column} DESC, COALESCE(ps.matches_won, 0) DESC, COALESCE(ps.stars_total, 0) DESC, u.created_at ASC
              LIMIT ?"
         );
         $stmt->bindValue(1, $limit, PDO::PARAM_INT);

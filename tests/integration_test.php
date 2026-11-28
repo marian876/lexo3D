@@ -168,4 +168,12 @@ assertTrue((int) $soloStats['stats']['experience_total'] === 5, 'Práctica debe 
 assertTrue((int) $soloStats['stats']['matches_won'] === 0, 'Práctica no debe inflar victorias multijugador');
 assertTrue((int) $soloStats['stats']['matches_played'] === 0, 'Práctica no debe inflar partidas competitivas');
 
+// 7. Usuario registrado con Google (0 partidas) debe aparecer en el Ranking
+$now = Database::nowUtc();
+$pdo->prepare('INSERT INTO users (google_sub, email, display_name, is_guest, role, status, created_at, updated_at) VALUES (?, ?, ?, 0, ?, ?, ?, ?)')
+    ->execute(['sub-test-123', 'reg@example.com', 'RegistradoNuevo', 'player', 'active', $now, $now]);
+$leaderboardWithReg = StatsService::getLeaderboard('points');
+$namesInBoard = array_column($leaderboardWithReg, 'display_name');
+assertTrue(in_array('RegistradoNuevo', $namesInBoard, true), 'Usuario registrado debe aparecer en el ranking aunque tenga 0 partidas');
+
 echo "ALL TESTS PASSED ({$passed} assertions)\n";
